@@ -4,10 +4,11 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.*;
 
-import java.util.LinkedList;
-import java.util.Stack;
+import java.util.*;
+import java.util.List;
 
 public class TreeMapComposite extends Composite {
 	private TreeMapNode tree;
@@ -34,6 +35,8 @@ public class TreeMapComposite extends Composite {
 			new Color(Display.getCurrent(), 255, 255, 255), // white
 			new Color(Display.getCurrent(), 205, 249, 212), // green
 	};
+
+	private Set<ITreeMapObserver> observers = new HashSet<>();
 
 	public TreeMapComposite(Composite parent, int style) {
 		super(parent, style);
@@ -112,12 +115,16 @@ public class TreeMapComposite extends Composite {
 		}
 
 		displayTree();
+
+		notifyZoomInToObservers(node);
 	}
 
 	public void zoomOut() {
 		if (zoomStack.size() > 1) {
 			zoomStack.pop();
 			displayTree();
+
+			notifyZoomOutToObservers();
 		}
 	}
 
@@ -125,5 +132,55 @@ public class TreeMapComposite extends Composite {
 		zoomStack.clear();
 		zoomStack.push(tree);
 		displayTree();
+
+		notifyZoomFullToObservers();
+	}
+
+	public void selectTile(TreeMapTile target) {
+		RGB color = target.getColor().getRGB();
+		Color darker = new Color(Display.getCurrent(), //
+				(int) (color.red * 0.8), (int) (color.green * 0.8), (int) (color.blue * 0.8));
+
+
+		if (focusedTile != null && !focusedTile.isDisposed()) {
+			focusedTile.setBackground(focusedTile.getColor());
+		}
+
+		focusedTile = target;
+		focusedTile.setBackground(darker);
+
+		notifySelectionToObservers(target.getNode());
+	}
+
+	public void register(ITreeMapObserver observer) {
+		observers.add(observer);
+	}
+
+	public void unregister(ITreeMapObserver observer) {
+		observers.remove(observer);
+	}
+
+	private void notifySelectionToObservers(TreeMapNode node) {
+		for (ITreeMapObserver observer : observers) {
+			observer.notifySelection(node);
+		}
+	}
+
+	private void notifyZoomInToObservers(TreeMapNode node) {
+		for (ITreeMapObserver observer : observers) {
+			observer.notifyZoomIn(node);
+		}
+	}
+
+	private void notifyZoomOutToObservers() {
+		for (ITreeMapObserver observer : observers) {
+			observer.notifyZoomOut();
+		}
+	}
+
+	private void notifyZoomFullToObservers() {
+		for (ITreeMapObserver observer : observers) {
+			observer.notifyZoomFull();
+		}
 	}
 }

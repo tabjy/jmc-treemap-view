@@ -19,6 +19,8 @@ public class TreeMapTile extends Composite {
 
 	private List<TreeMapTile> childTiles = new LinkedList<>();
 
+	private Cursor cursor;
+
 	public final static int SWT_STYLE = SWT.BORDER;
 	public final static Color FONT_COLOR = new Color(Display.getDefault(), 0, 0, 0);
 	public final static int FONT_SIZE = 6;
@@ -41,6 +43,14 @@ public class TreeMapTile extends Composite {
 		label.setFont(font);
 
 		initListeners();
+	}
+
+	@Override public void dispose() {
+		if (cursor != null && !cursor.isDisposed()) {
+			cursor.dispose();
+		}
+
+		super.dispose();
 	}
 
 	@Override public void setLayout(Layout layout) {
@@ -85,18 +95,7 @@ public class TreeMapTile extends Composite {
 		Listener onMouseDown = (Event e) -> {
 			switch (e.button) {
 			case 1: // left button
-				int r = color.getRGB().red *= 0.8;
-				int g = color.getRGB().green *= 0.8;
-				int b = color.getRGB().blue *= 0.8;
-				Color darker = new Color(Display.getCurrent(), r, g, b);
-
-				TreeMapTile lastTile = composite.focusedTile;
-				if (lastTile != null && !lastTile.isDisposed()) {
-					lastTile.setBackground(lastTile.color);
-				}
-
-				composite.focusedTile = this;
-				setBackground(darker);
+				composite.selectTile(this);
 				break;
 			case 2: // middle button
 				composite.zoomFull();
@@ -109,8 +108,32 @@ public class TreeMapTile extends Composite {
 		};
 		addListener(SWT.MouseDown, onMouseDown);
 
-		Listener onMouseDoubleClick = (Event e) -> composite.zoomIn(getNode());
+		Listener onMouseDoubleClick = (Event e) -> {
+			if (e.button == 1) { // left button
+				composite.zoomIn(getNode());
+			}
+		};
 		addListener(SWT.MouseDoubleClick, onMouseDoubleClick);
+
+		addListener(SWT.MouseEnter, e -> {
+			if (cursor != null && !cursor.isDisposed()) {
+				cursor.dispose();
+			}
+
+			cursor = new Cursor(Display.getCurrent(), SWT.CURSOR_CROSS);
+
+			setCursor(cursor);
+		});
+
+		addListener(SWT.MouseExit, e -> {
+			if (cursor != null && !cursor.isDisposed()) {
+				cursor.dispose();
+			}
+
+			cursor = new Cursor(Display.getCurrent(), SWT.CURSOR_ARROW);
+
+			setCursor(cursor);
+		});
 	}
 
 	private void displayTile() {
@@ -132,7 +155,7 @@ public class TreeMapTile extends Composite {
 
 	// add label to tile if space permits
 	private void addLabelIfPossible() {
-		label.setText("");
+		label.setVisible(false);
 
 		// TODO: better data binding mechanism
 		String text = node.getLabel();
@@ -143,16 +166,18 @@ public class TreeMapTile extends Composite {
 		Point availableSpace = getSize();
 
 		GC gc = new GC(label);
-		Point fontBound = gc.textExtent(node.getLabel());
+		// TODO: better data binding mechanism
+		Point textBound = gc.textExtent(node.getLabel());
 		gc.dispose();
 
-		if (fontBound.x > availableSpace.x || fontBound.y > availableSpace.y) {
+		if (textBound.x > availableSpace.x || textBound.y > availableSpace.y) {
 			return;
 		}
 
 		label.setText(text);
-		label.setBounds(0, 0, fontBound.x, fontBound.y);
+		label.setBounds(0, 0, textBound.x, textBound.y);
 		label.setForeground(FONT_COLOR);
+		label.setVisible(true);
 	}
 
 	// add child tiles if space permits

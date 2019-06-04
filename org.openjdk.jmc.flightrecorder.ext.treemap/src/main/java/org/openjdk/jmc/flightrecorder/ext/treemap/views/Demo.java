@@ -3,6 +3,10 @@ package main.java.org.openjdk.jmc.flightrecorder.ext.treemap.views;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.layout.FormAttachment;
+import org.eclipse.swt.layout.FormData;
+import org.eclipse.swt.layout.FormLayout;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
@@ -49,16 +53,42 @@ public class Demo {
 		shell = new Shell();
 		// shell.setSize(640, 480);
 		shell.setText("TreeMap Demo");
-		shell.setLayout(new FillLayout(SWT.HORIZONTAL));
+		shell.setLayout(new FillLayout(SWT.VERTICAL));
 
-		TreeMapComposite treemap = new TreeMapComposite(shell, SWT.NONE);
-		treemap.setBackground(new Color(Display.getDefault(), 100, 100, 100));
-
+//		TreeMapBreadcrumb bc = new TreeMapBreadcrumb(shell, SWT.BORDER);
+//
+//		TreeMapComposite treemap = new TreeMapComposite(shell, SWT.BORDER);
+//		treemap.setBackground(new Color(Display.getDefault(), 100, 100, 100));
+//
 		TreeMapNode root = new TreeMapNode(0);
 		root.setLabel("root");
 		generateTree(root, 6, 6, false);
+//
+//		treemap.setTree(root);
+//
+//		bc.setTreeMap(treemap);
+
+		shell.setLayout(new FillLayout(SWT.HORIZONTAL));
+		Composite composite = new Composite(shell, SWT.NONE);
+		composite.setLayout(new FormLayout());
+
+		TreeMapBreadcrumb bc = new TreeMapBreadcrumb(composite, SWT.BORDER);
+		FormData fd_btnNewButton = new FormData();
+		fd_btnNewButton.top = new FormAttachment(0, 0);
+		fd_btnNewButton.left = new FormAttachment(0, 0);
+		fd_btnNewButton.right = new FormAttachment(100, 0);
+		bc.setLayoutData(fd_btnNewButton);
+
+		TreeMapComposite treemap = new TreeMapComposite(composite, SWT.BORDER);
+		FormData fd_composite_1 = new FormData();
+		fd_composite_1.bottom = new FormAttachment(100);
+		fd_composite_1.top = new FormAttachment(bc);
+		fd_composite_1.left = new FormAttachment(0);
+		fd_composite_1.right = new FormAttachment(100, 0);
+		treemap.setLayoutData(fd_composite_1);
 
 		treemap.setTree(root);
+		bc.setTreeMap(treemap);
 	}
 
 	static int generatorCounter;
