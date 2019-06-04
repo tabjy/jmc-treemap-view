@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="org.openjdk.jmc.feature.flightrecorder.ext.treemap"
+      label="%name"
+      version="7.0.0.qualifier"
+      license-feature="org.openjdk.jmc.feature.license"
+      license-feature-version="7.0.0.qualifier">
+
+   <requires>
+      <import feature="org.openjdk.jmc.feature.core" match="equivalent"/>
+      <import feature="org.openjdk.jmc.feature.flightrecorder" match="equivalent"/>
+   </requires>
+
+   <plugin
+         id="org.openjdk.jmc.flightrecorder.ext.treemap"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="true"/>
+</feature>
