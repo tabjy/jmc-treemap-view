@@ -116,6 +116,10 @@ public class TreeMapTile extends Composite {
 		addListener(SWT.MouseDoubleClick, onMouseDoubleClick);
 
 		addListener(SWT.MouseEnter, e -> {
+			if (node.isLeaf()) {
+				return;
+			}
+
 			if (cursor != null && !cursor.isDisposed()) {
 				cursor.dispose();
 			}

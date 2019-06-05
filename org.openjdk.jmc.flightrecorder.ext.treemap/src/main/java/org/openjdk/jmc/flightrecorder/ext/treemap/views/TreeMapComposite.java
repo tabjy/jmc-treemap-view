@@ -108,6 +108,10 @@ public class TreeMapComposite extends Composite {
 	}
 
 	public void zoomIn(TreeMapNode node) {
+		if (node.isLeaf()) {
+			return;
+		}
+
 		zoomStack.clear();
 		LinkedList<TreeMapNode> ancestors = node.getAncestors();
 		while (!ancestors.isEmpty()) {

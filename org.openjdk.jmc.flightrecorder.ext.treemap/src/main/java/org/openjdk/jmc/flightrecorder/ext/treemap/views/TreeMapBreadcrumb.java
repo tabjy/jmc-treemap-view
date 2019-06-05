@@ -3,10 +3,7 @@ package main.java.org.openjdk.jmc.flightrecorder.ext.treemap.views;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.graphics.*;
-import org.eclipse.swt.widgets.Canvas;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.*;
 
 import java.util.LinkedList;
 import java.util.Objects;
@@ -79,15 +76,27 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 			}
 		});
 
-		addListener(SWT.MouseEnter, e -> {
+		Listener updateCursor = e -> {
+			int dx = 0;
+			for (TreeMapBreadcrumbItem item : items) {
+				dx += item.getWidth();
+			}
+
 			if (cursor != null && !cursor.isDisposed()) {
 				cursor.dispose();
 			}
 
-			cursor = new Cursor(Display.getCurrent(), SWT.CURSOR_HAND);
+			if (dx >= e.x) {
+				cursor = new Cursor(Display.getCurrent(), SWT.CURSOR_HAND);
+			} else {
+				cursor = new Cursor(Display.getCurrent(), SWT.CURSOR_ARROW);
+			}
 
 			setCursor(cursor);
-		});
+		};
+
+		addListener(SWT.MouseEnter, updateCursor);
+		addListener(SWT.MouseMove, updateCursor);
 
 		addListener(SWT.MouseExit, e -> {
 			if (cursor != null && !cursor.isDisposed()) {
