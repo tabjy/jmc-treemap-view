@@ -1,4 +1,4 @@
-package main.java.org.openjdk.jmc.flightrecorder.ext.treemap.views;
+package org.openjdk.jmc.flightrecorder.ext.treemap.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.PaintEvent;

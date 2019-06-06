@@ -4,6 +4,7 @@ Bundle-Name: Treemap
 Bundle-SymbolicName: org.openjdk.jmc.flightrecorder.ext.treemap;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Require-Bundle: org.openjdk.jmc.flightrecorder;bundle-version="7.0.0",
- org.openjdk.jmc.flightrecorder.ui;bundle-version="7.0.0"
+ org.openjdk.jmc.flightrecorder.ui;bundle-version="7.0.0",
+ org.eclipse.swt
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Automatic-Module-Name: org.openjdk.jmc.flightrecorder.ext.treemap

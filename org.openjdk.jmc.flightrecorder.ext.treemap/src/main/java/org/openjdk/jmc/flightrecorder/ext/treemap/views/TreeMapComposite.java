@@ -1,4 +1,4 @@
-package main.java.org.openjdk.jmc.flightrecorder.ext.treemap.views;
+package org.openjdk.jmc.flightrecorder.ext.treemap.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -7,8 +7,10 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.*;
 
-import java.util.*;
-import java.util.List;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Set;
+import java.util.Stack;
 
 public class TreeMapComposite extends Composite {
 	private TreeMapNode tree;
@@ -52,7 +54,7 @@ public class TreeMapComposite extends Composite {
 
 	@Override public void setLayout(Layout layout) {
 		// TODO: custom exception type
-		throw new SWTException("cannot set layout to a tree map tile");
+		throw new SWTException("cannot set layout to a tree map composite");
 	}
 
 	public void setTree(TreeMapNode root) {
