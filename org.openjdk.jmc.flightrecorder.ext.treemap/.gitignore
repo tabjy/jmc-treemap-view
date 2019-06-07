@@ -184,3 +184,4 @@ modules.xml
 .idea/sonarlint
 
 # End of https://www.gitignore.io/api/java,eclipse,jetbrains+all
+/target/

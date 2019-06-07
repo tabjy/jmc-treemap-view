@@ -1,9 +1,11 @@
-package org.openjdk.jmc.flightrecorder.ext.treemap.views;
+package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.graphics.*;
 import org.eclipse.swt.widgets.*;
+import org.openjdk.jmc.flightrecorder.ext.treemap.model.ITreeMapObserver;
+import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 
 import java.util.LinkedList;
 import java.util.Objects;

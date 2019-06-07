@@ -34,7 +34,7 @@
  * to do so, delete this exception statement from your version.
  */
 
-package org.openjdk.jmc.flightrecorder.ext.treemap.views;
+package org.openjdk.jmc.flightrecorder.ext.treemap.model;
 
 import java.awt.geom.Rectangle2D;
 import java.util.*;

@@ -1,4 +1,4 @@
-package org.openjdk.jmc.flightrecorder.ext.treemap.views;
+package org.openjdk.jmc.flightrecorder.ext.treemap.model;
 
 import java.util.List;
 

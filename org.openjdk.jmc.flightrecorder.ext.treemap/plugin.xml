@@ -5,7 +5,7 @@
 		<view
           allowMultiple="false"
           category="org.openjdk.jmc.ui.main"
-          class="org.openjdk.jmc.flightrecorder.ext.treemap.views.TreeMapView"
+          class="org.openjdk.jmc.flightrecorder.ext.treemap.view.TreeMapView"
           icon="icons/treemap.png"
           id="org.openjdk.jmc.flightrecorder.ext.treemap.views.TreeMapView"
           name="Treemap"

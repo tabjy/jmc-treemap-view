@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.openjdk.jmc.flightrecorder.ext.treemap.views.NodeDataExtractor;
+import org.openjdk.jmc.flightrecorder.ext.treemap.model.NodeDataExtractor;
 
 public class ObjectHistogramNodeDataExtractor implements NodeDataExtractor<ObjectHistogram, HistogramRecord> {
 

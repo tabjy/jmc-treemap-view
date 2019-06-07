@@ -1,9 +1,11 @@
-package org.openjdk.jmc.flightrecorder.ext.treemap.views;
+package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.*;
 import org.eclipse.swt.widgets.*;
+import org.openjdk.jmc.flightrecorder.ext.treemap.model.SquarifiedTreeMap;
+import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 
 import java.awt.geom.Rectangle2D;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.openjdk.jmc.flightrecorder.ext.treemap.views;
+package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +39,9 @@ import org.eclipse.ui.dialogs.ElementListSelectionDialog;
 import org.eclipse.ui.part.ViewPart;
 import org.openjdk.jmc.browser.attach.LocalJVMToolkit;
 import org.openjdk.jmc.browser.attach.LocalJVMToolkit.DiscoveryEntry;
+import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMap;
+import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
+import org.openjdk.jmc.flightrecorder.ext.treemap.util.Util;
 import org.openjdk.jmc.flightrecorder.ui.FlightRecorderUI;
 import org.openjdk.jmc.rcp.application.ApplicationPlugin;
 import org.openjdk.jmc.rjmx.IServerDescriptor;
@@ -53,8 +56,6 @@ import org.openjdk.jmc.ui.CoreImages;
 import org.openjdk.jmc.ui.common.resource.MCFile;
 
 public class TreeMapView extends ViewPart {
-	private final static String FILE_OPEN_FILTER_PATH = "file.open.filter.path"; //$NON-NLS-1$
-
 	private static ExecutorService MODEL_EXECUTOR = Executors.newFixedThreadPool(1);
 	private CompletableFuture<TreeMapNode> treeModelCalculator;
 
@@ -87,94 +88,31 @@ public class TreeMapView extends ViewPart {
 		private String selectFile() {
 			IWorkbenchWindow window = FlightRecorderUI.getDefault().getWorkbench().getActiveWorkbenchWindow();
 			FileDialog dialog = new FileDialog(window.getShell(), SWT.OPEN | SWT.SINGLE);
-			dialog.setFilterPath(getDefaultFilterPath());
+			dialog.setFilterExtensions(new String[] {"*.hprof", "*.*"});
+			dialog.setFilterPath(Util.getDefaultFilterPath());
 			dialog.setText("Load Heap Dump");
 
-			if (dialog.open() == null) {
+			String path = dialog.open();
+
+			if (path == null) {
 				return null;
 			}
 
-			return dialog.getFilterPath() + File.separator + dialog.getFileName();
+			return path;
 		}
 	}
 
 	private class RecordHeapDumpAction extends Action {
 		private RecordHeapDumpAction() {
+			// TODO: need a better icon
 			setImageDescriptor(CoreImages.THREAD_NEW);
 			setToolTipText("Record a heap dump");
 		}
 
 		@Override
 		public void run() {
-			for (DiscoveryEntry entry : LocalJVMToolkit.getAttachableJVMs()) {
-				System.out.println(entry.getServerDescriptor().getDisplayName());
-				System.out.println(entry.getServerDescriptor().getJvmInfo().toString());
-				System.out.println();
-			}
-
 			IWorkbenchWindow window = FlightRecorderUI.getDefault().getWorkbench().getActiveWorkbenchWindow();
-			ElementListSelectionDialog dialog = new ElementListSelectionDialog(window.getShell(), new LabelProvider() {
-				@Override
-				public String getText(Object obj) {
-					return ((DiscoveryEntry) obj).getServerDescriptor().getDisplayName();
-				}
-			}) {
-				private Text fileNameText;
-				
-				@Override
-				protected Control createDialogArea(Composite parent) {
-					super.createDialogArea(parent);
-					
-					Composite container = new Composite(parent, SWT.NONE);
-					
-					GridLayout layout = new GridLayout();
-					container.setLayout(layout);
-					
-					GridData gd1 = new GridData(SWT.FILL, SWT.FILL, true, false);
-					Composite settingsContainer = createSettingsContainer(container, 0);
-					settingsContainer.setLayoutData(gd1);
-					
-					return parent;
-				}
-				
-				private Composite createSettingsContainer(Composite parent, int indent) {
-					Composite container = new Composite(parent, SWT.NONE);
-					int cols = 5;
-					GridLayout layout = new GridLayout(cols, false);
-					layout.horizontalSpacing = 8; // Make room for the content proposal decorator
-					container.setLayout(layout);
-
-					GridData gd1 = new GridData(SWT.BEGINNING, SWT.CENTER, false, false);
-					Label label = new Label(parent, SWT.NONE);
-					label.setText("Destination File:"); 
-					label.setLayoutData(gd1);
-
-					GridData gd2 = new GridData(SWT.FILL, SWT.CENTER, true, true);
-					gd2.horizontalSpan = cols - 2;
-					fileNameText = new Text(parent, SWT.READ_ONLY | SWT.BORDER);
-					fileNameText.setText(getDefaultDumpFile(null));
-					fileNameText.setEnabled(false);
-					gd2.minimumWidth = 0;
-					gd2.widthHint = 400;
-					fileNameText.setLayoutData(gd2);
-
-					GridData gd3 = new GridData(SWT.FILL, SWT.FILL, false, true);
-					Button browseButton = new Button(parent, SWT.NONE);
-					browseButton.setText("Browse...");
-					browseButton.addSelectionListener(new SelectionAdapter() {
-						@Override
-						public void widgetSelected(SelectionEvent e) {
-							
-							// Setting focus back to the button, otherwise focus
-							// will just disappear!
-							browseButton.setFocus();
-						}
-					});
-					browseButton.setLayoutData(gd3);
-
-					return container;
-				}
-			};
+			HeapDumpRecordingDialog dialog = new HeapDumpRecordingDialog(window.getShell());
 			dialog.setElements(LocalJVMToolkit.getAttachableJVMs());
 			dialog.setMessage("Select a local JVM to produce a heap dump from:");
 			dialog.setTitle("Select JVM");
@@ -184,7 +122,8 @@ public class TreeMapView extends ViewPart {
 			}
 
 			DiscoveryEntry entry = (DiscoveryEntry) dialog.getResult()[0];
-			displayMessage("Creating a heap dump from: " + entry.getServerDescriptor().getDisplayName() + "...");
+			displayMessage("Saving heap dump of " + entry.getServerDescriptor().getDisplayName() + " to "
+					+ dialog.getFilePath() + "...");
 		}
 	}
 
@@ -319,30 +258,4 @@ public class TreeMapView extends ViewPart {
 		});
 	}
 
-	private static String getDefaultFilterPath() {
-		String result = getIfExists(ApplicationPlugin.getDefault().getDialogSettings().get(FILE_OPEN_FILTER_PATH));
-		if (result == null) {
-			result = getIfExists(System.getProperty("user.home"));
-		}
-		if (result == null) {
-			result = "./"; //$NON-NLS-1$
-		}
-
-		return result;
-	}
-	
-	private static String getDefaultDumpFile(IServerDescriptor descriptor) {
-		if (descriptor == null) {
-			return "";
-		}
-		return getDefaultFilterPath() + File.separator + "java_pid" + descriptor.getJvmInfo().getPid() + ".hprof";
-	}
-
-	private static String getIfExists(String path) {
-		if (path == null) {
-			return null;
-		}
-
-		return (new File(path)).exists() ? path : null;
-	}
 }
