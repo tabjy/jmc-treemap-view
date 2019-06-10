@@ -1,8 +1,8 @@
 package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -11,31 +11,24 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IToolBarManager;
-import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IViewSite;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.dialogs.ElementListSelectionDialog;
 import org.eclipse.ui.part.ViewPart;
 import org.openjdk.jmc.browser.attach.LocalJVMToolkit;
 import org.openjdk.jmc.browser.attach.LocalJVMToolkit.DiscoveryEntry;
@@ -43,17 +36,17 @@ import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMap;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 import org.openjdk.jmc.flightrecorder.ext.treemap.util.Util;
 import org.openjdk.jmc.flightrecorder.ui.FlightRecorderUI;
-import org.openjdk.jmc.rcp.application.ApplicationPlugin;
-import org.openjdk.jmc.rjmx.IServerDescriptor;
+import org.openjdk.jmc.rjmx.ConnectionException;
+import org.openjdk.jmc.rjmx.IConnectionListener;
+import org.openjdk.jmc.rjmx.internal.DefaultConnectionHandle;
+import org.openjdk.jmc.rjmx.internal.RJMXConnection;
 import org.openjdk.jmc.ui.misc.DisplayToolkit;
 
 import com.redhat.thermostat.vm.heap.analysis.common.HistogramLoader;
 import com.redhat.thermostat.vm.heap.analysis.common.HistogramRecord;
 import com.redhat.thermostat.vm.heap.analysis.common.ObjectHistogram;
 import com.redhat.thermostat.vm.heap.analysis.common.ObjectHistogramNodeDataExtractor;
-
 import org.openjdk.jmc.ui.CoreImages;
-import org.openjdk.jmc.ui.common.resource.MCFile;
 
 public class TreeMapView extends ViewPart {
 	private static ExecutorService MODEL_EXECUTOR = Executors.newFixedThreadPool(1);
@@ -124,6 +117,8 @@ public class TreeMapView extends ViewPart {
 			DiscoveryEntry entry = (DiscoveryEntry) dialog.getResult()[0];
 			displayMessage("Saving heap dump of " + entry.getServerDescriptor().getDisplayName() + " to "
 					+ dialog.getFilePath() + "...");
+
+			recordAndBuildModel(entry, dialog.getFilePath());
 		}
 	}
 
@@ -170,6 +165,62 @@ public class TreeMapView extends ViewPart {
 		treeMap.setLayoutData(tmLayoutData);
 
 		containerLayout.topControl = messageContainer;
+	}
+
+	private void recordAndBuildModel(DiscoveryEntry entry, String filePath) {
+		if (treeModelCalculator != null) {
+			treeModelCalculator.cancel(true);
+		}
+
+		// FIXME: This part is really hacky and fragile. Do it properly if possible.
+		treeModelCalculator = CompletableFuture.supplyAsync(new Supplier<TreeMapNode>() {
+
+			@Override
+			public TreeMapNode get() {
+				RJMXConnection rjmxConn = new RJMXConnection(entry.getConnectionDescriptor(),
+						entry.getServerDescriptor(), () -> {
+							displayMessage("Unable to establish a RJMX connection.");
+						});
+
+				try {
+					rjmxConn.connect();
+				} catch (ConnectionException e) {
+					rjmxConn.close();
+					throw new UncheckedIOException(e);
+				}
+				DefaultConnectionHandle handle = new DefaultConnectionHandle(rjmxConn, null,
+						new IConnectionListener[] {});
+
+				try {
+					MBeanServerConnection mBeanConn = handle.getServiceOrThrow(MBeanServerConnection.class);
+					mBeanConn.invoke(new ObjectName(
+							"com.sun.management:type=HotSpotDiagnostic"),
+							"dumpHeap", 
+							new Object[] {filePath, Boolean.TRUE},
+							new String[] {String.class.getName(), boolean.class.getName()});
+				} catch (ConnectionException e) {
+					throw new UncheckedIOException(e);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				} finally {
+					try {
+						handle.close();
+					} catch (IOException e) {
+						// intentionally empty
+					}
+					rjmxConn.close();
+				}
+
+				buildModel(filePath);
+
+				return null;
+			}
+		});
+		treeModelCalculator.exceptionally((Throwable t) -> {
+			handleException(t);
+			return null;
+		});
+
 	}
 
 	private void buildModel(String filePath) {
@@ -243,7 +294,10 @@ public class TreeMapView extends ViewPart {
 	}
 
 	private Void handleException(Throwable e) {
-		System.out.println("hannde exception: " + e.getMessage());
+		if (e instanceof CancellationException || e.getCause() instanceof CancellationException) {
+			return null;
+		}
+
 		FlightRecorderUI.getDefault().getLogger().log(Level.SEVERE, "Unable to load heap dump", e); //$NON-NLS-1$
 		displayMessage("Unable to load heap dump:" + "\n\t" + e.getLocalizedMessage()); // TODO: i18n
 		return null;

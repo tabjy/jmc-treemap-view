@@ -10,4 +10,6 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Automatic-Module-Name: org.openjdk.jmc.flightrecorder.ext.treemap
 Import-Package: org.openjdk.jmc.browser.attach,
  org.openjdk.jmc.rcp.application,
- org.openjdk.jmc.rjmx
+ org.openjdk.jmc.rjmx,
+ org.openjdk.jmc.rjmx.internal,
+ org.openjdk.jmc.rjmx.services.internal

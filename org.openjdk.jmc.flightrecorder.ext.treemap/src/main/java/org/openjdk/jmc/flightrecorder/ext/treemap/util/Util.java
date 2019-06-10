@@ -20,11 +20,15 @@ public class Util {
 		return result;
 	}
 
+	public static String getDefaultFileName(IServerDescriptor descriptor) {
+		return "java_pid" + descriptor.getJvmInfo().getPid() + ".hprof";
+	}
+	
 	public static String getDefaultDumpFilePath(IServerDescriptor descriptor) {
 		if (descriptor == null) {
 			return "";
 		}
-		return getDefaultFilterPath() + File.separator + "java_pid" + descriptor.getJvmInfo().getPid() + ".hprof";
+		return getDefaultFilterPath() + File.separator + getDefaultFileName(descriptor);
 	}
 
 	private static String getIfExists(String path) {

@@ -109,6 +109,7 @@ public class HeapDumpRecordingDialog extends ElementListSelectionDialog {
 				FileDialog dialog = new FileDialog(window.getShell(), SWT.SAVE | SWT.SINGLE);
 				dialog.setFilterExtensions(new String[] {"*.hprof"});
 				dialog.setFilterPath(Util.getDefaultFilterPath());
+				dialog.setFileName("");
 				dialog.setText("Save Heap Dump");
 
 				String path = dialog.open();
