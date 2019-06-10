@@ -34,10 +34,11 @@ public class TreeMapComposite extends Composite {
 
 	private Stack<TreeMapNode> zoomStack = new Stack<>();
 
-	static public final Color[] COLORS = {new Color(Display.getDefault(), 250, 206, 210), // red
-			new Color(Display.getCurrent(), 185, 214, 255), // red
-			new Color(Display.getCurrent(), 229, 229, 229), // blue
-			new Color(Display.getCurrent(), 255, 231, 199), // grey
+	static public final Color[] COLORS = {
+			new Color(Display.getDefault(), 250, 206, 210), // red
+			new Color(Display.getCurrent(), 185, 214, 255), // blue
+			new Color(Display.getCurrent(), 229, 229, 229), // grey
+			new Color(Display.getCurrent(), 255, 231, 199), // orange
 			new Color(Display.getCurrent(), 171, 235, 238), // aqua
 			new Color(Display.getCurrent(), 228, 209, 252), // purple
 			new Color(Display.getCurrent(), 255, 255, 255), // white
