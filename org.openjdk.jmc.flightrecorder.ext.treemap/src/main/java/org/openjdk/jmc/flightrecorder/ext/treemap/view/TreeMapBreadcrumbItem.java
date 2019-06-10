@@ -3,7 +3,9 @@ package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.widgets.*;
+import org.eclipse.swt.widgets.Canvas;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 
 import java.util.Objects;

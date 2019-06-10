@@ -1,5 +1,6 @@
 package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.concurrent.CancellationException;
@@ -15,6 +16,7 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IToolBarManager;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
@@ -50,7 +52,7 @@ import org.openjdk.jmc.ui.CoreImages;
 
 public class TreeMapView extends ViewPart {
 	private static ExecutorService MODEL_EXECUTOR = Executors.newFixedThreadPool(1);
-	private CompletableFuture<TreeMapNode> treeModelCalculator;
+	private CompletableFuture<Void> treeModelCalculator;
 
 	private Composite container;
 	private StackLayout containerLayout;
@@ -83,7 +85,7 @@ public class TreeMapView extends ViewPart {
 			FileDialog dialog = new FileDialog(window.getShell(), SWT.OPEN | SWT.SINGLE);
 			dialog.setFilterExtensions(new String[] {"*.hprof", "*.*"});
 			dialog.setFilterPath(Util.getDefaultFilterPath());
-			dialog.setText("Load Heap Dump");
+			dialog.setText("Load Heap Dump"); // TODO: i18n
 
 			String path = dialog.open();
 
@@ -99,7 +101,7 @@ public class TreeMapView extends ViewPart {
 		private RecordHeapDumpAction() {
 			// TODO: need a better icon
 			setImageDescriptor(CoreImages.THREAD_NEW);
-			setToolTipText("Record a heap dump");
+			setToolTipText("Record a heap dump"); // TODO: i18n
 		}
 
 		@Override
@@ -107,17 +109,32 @@ public class TreeMapView extends ViewPart {
 			IWorkbenchWindow window = FlightRecorderUI.getDefault().getWorkbench().getActiveWorkbenchWindow();
 			HeapDumpRecordingDialog dialog = new HeapDumpRecordingDialog(window.getShell());
 			dialog.setElements(LocalJVMToolkit.getAttachableJVMs());
-			dialog.setMessage("Select a local JVM to produce a heap dump from:");
-			dialog.setTitle("Select JVM");
+			dialog.setMessage("Select a local JVM to produce a heap dump from:"); // TODO: i18n
+			dialog.setTitle("Select JVM"); // TODO: i18n
 			// user pressed cancel
-			if (dialog.open() != Window.OK) {
-				return;
+			
+			DiscoveryEntry entry = null;
+			
+			boolean done = false;
+			while (!done) {
+				if (dialog.open() != Window.OK) {
+					return;
+				}
+
+				entry = (DiscoveryEntry) dialog.getResult()[0];
+				
+				File file = new File(dialog.getFilePath());
+				if (!file.exists()) {
+					break;
+				} else if (MessageDialog.openConfirm(window.getShell(), "Destination file exists", "Destination file exists. Are you sure to over overwrite?")) {
+					file.delete();
+					break;
+				}
 			}
-
-			DiscoveryEntry entry = (DiscoveryEntry) dialog.getResult()[0];
+			
 			displayMessage("Saving heap dump of " + entry.getServerDescriptor().getDisplayName() + " to "
-					+ dialog.getFilePath() + "...");
-
+					+ dialog.getFilePath() + "..."); // TODO: i18n
+			
 			recordAndBuildModel(entry, dialog.getFilePath());
 		}
 	}
@@ -173,50 +190,42 @@ public class TreeMapView extends ViewPart {
 		}
 
 		// FIXME: This part is really hacky and fragile. Do it properly if possible.
-		treeModelCalculator = CompletableFuture.supplyAsync(new Supplier<TreeMapNode>() {
+		treeModelCalculator = CompletableFuture.supplyAsync((Supplier<Void>) () -> {
+			RJMXConnection rjmxConn = new RJMXConnection(entry.getConnectionDescriptor(), entry.getServerDescriptor(),
+					() -> {
+						displayMessage("Unable to establish a RJMX connection."); // TODO: i18n
+					});
 
-			@Override
-			public TreeMapNode get() {
-				RJMXConnection rjmxConn = new RJMXConnection(entry.getConnectionDescriptor(),
-						entry.getServerDescriptor(), () -> {
-							displayMessage("Unable to establish a RJMX connection.");
-						});
-
-				try {
-					rjmxConn.connect();
-				} catch (ConnectionException e) {
-					rjmxConn.close();
-					throw new UncheckedIOException(e);
-				}
-				DefaultConnectionHandle handle = new DefaultConnectionHandle(rjmxConn, null,
-						new IConnectionListener[] {});
-
-				try {
-					MBeanServerConnection mBeanConn = handle.getServiceOrThrow(MBeanServerConnection.class);
-					mBeanConn.invoke(new ObjectName(
-							"com.sun.management:type=HotSpotDiagnostic"),
-							"dumpHeap", 
-							new Object[] {filePath, Boolean.TRUE},
-							new String[] {String.class.getName(), boolean.class.getName()});
-				} catch (ConnectionException e) {
-					throw new UncheckedIOException(e);
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				} finally {
-					try {
-						handle.close();
-					} catch (IOException e) {
-						// intentionally empty
-					}
-					rjmxConn.close();
-				}
-
-				buildModel(filePath);
-
-				return null;
+			try {
+				rjmxConn.connect();
+			} catch (ConnectionException e) {
+				rjmxConn.close();
+				throw new UncheckedIOException(e);
 			}
-		});
-		treeModelCalculator.exceptionally((Throwable t) -> {
+			DefaultConnectionHandle handle = new DefaultConnectionHandle(rjmxConn, null, new IConnectionListener[] {});
+
+			try {
+				MBeanServerConnection mBeanConn = handle.getServiceOrThrow(MBeanServerConnection.class);
+				mBeanConn.invoke(new ObjectName("com.sun.management:type=HotSpotDiagnostic"), "dumpHeap",
+						new Object[] {filePath, Boolean.TRUE},
+						new String[] {String.class.getName(), boolean.class.getName()});
+			} catch (ConnectionException e) {
+				throw new UncheckedIOException(e);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			} finally {
+				try {
+					handle.close();
+				} catch (IOException e) {
+					// intentionally empty
+				}
+				rjmxConn.close();
+			}
+
+			buildModel(filePath);
+
+			return null;
+		}).exceptionally((Throwable t) -> {
 			handleException(t);
 			return null;
 		});
@@ -228,52 +237,29 @@ public class TreeMapView extends ViewPart {
 			treeModelCalculator.cancel(true);
 		}
 
-		treeModelCalculator = CompletableFuture.supplyAsync(new Supplier<TreeMapNode>() {
+		treeModelCalculator = CompletableFuture.supplyAsync((Supplier<Void>) () -> {
+			displayMessage("Loading heap dump..."); // TODO: i18n
 
-			@Override
-			public TreeMapNode get() {
-				displayMessage("Loading heap dump...");
-
-				ObjectHistogram histogram;
-				try {
-					histogram = (new HistogramLoader()).load(filePath);
-				} catch (IOException e) {
-					throw new UncheckedIOException(e);
-				}
-
-				displayMessage("Building tree model...");
-				TreeMap<ObjectHistogram, HistogramRecord> map = new TreeMap<>(histogram,
-						new ObjectHistogramNodeDataExtractor());
-				TreeMapNode root = map.getRoot();
-				root.setLabel("[root]"); // TODO: mark not translatable
-
-				displayMessage("Rendering tree map...");
-				return root;
+			ObjectHistogram histogram;
+			try {
+				histogram = (new HistogramLoader()).load(filePath);
+			} catch (IOException e) {
+				throw new UncheckedIOException(e);
 			}
 
-		}, MODEL_EXECUTOR);
+			displayMessage("Building tree model..."); // TODO: i18n
+			TreeMap<ObjectHistogram, HistogramRecord> map = new TreeMap<>(histogram,
+					new ObjectHistogramNodeDataExtractor());
+			TreeMapNode root = map.getRoot();
+			root.setLabel("[root]"); // TODO: mark not translatable
 
-		treeModelCalculator.thenAcceptAsync(new Consumer<TreeMapNode>() {
+			displayMessage("Rendering tree map..."); // TODO: i18n
+			DisplayToolkit.inDisplayThread().execute(() -> setModel(root));
 
-			@Override
-			public void accept(TreeMapNode root) {
-				DisplayToolkit.inDisplayThread().execute(new Runnable() {
-
-					@Override
-					public void run() {
-						TreeMapView.this.setModel(root);
-					}
-				});
-
-			}
-
-		}).exceptionally(new Function<Throwable, Void>() {
-
-			@Override
-			public Void apply(Throwable t) {
-				return TreeMapView.this.handleException(t);
-			}
-
+			return null;
+		}, MODEL_EXECUTOR).exceptionally((t) -> {
+			handleException(t);
+			return null;
 		});
 
 	}
@@ -293,14 +279,14 @@ public class TreeMapView extends ViewPart {
 		container.layout(true, true);
 	}
 
-	private Void handleException(Throwable e) {
+	private void handleException(Throwable e) {
 		if (e instanceof CancellationException || e.getCause() instanceof CancellationException) {
-			return null;
+			return;
 		}
 
 		FlightRecorderUI.getDefault().getLogger().log(Level.SEVERE, "Unable to load heap dump", e); //$NON-NLS-1$
 		displayMessage("Unable to load heap dump:" + "\n\t" + e.getLocalizedMessage()); // TODO: i18n
-		return null;
+		return;
 	}
 
 	private void displayMessage(String msg) {

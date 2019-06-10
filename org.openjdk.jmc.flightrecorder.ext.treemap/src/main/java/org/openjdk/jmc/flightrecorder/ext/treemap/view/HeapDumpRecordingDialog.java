@@ -1,7 +1,5 @@
 package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 
-import java.io.File;
-
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;

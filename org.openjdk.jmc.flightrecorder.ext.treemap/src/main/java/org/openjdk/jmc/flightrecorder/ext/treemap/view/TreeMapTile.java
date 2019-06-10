@@ -8,8 +8,11 @@ import org.openjdk.jmc.flightrecorder.ext.treemap.model.SquarifiedTreeMap;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 
 import java.awt.geom.Rectangle2D;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
 
 public class TreeMapTile extends Composite {
 	private TreeMapComposite composite;

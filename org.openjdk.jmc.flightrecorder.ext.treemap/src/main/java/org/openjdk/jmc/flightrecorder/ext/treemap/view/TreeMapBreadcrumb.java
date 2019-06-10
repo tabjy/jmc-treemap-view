@@ -2,8 +2,13 @@ package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.PaintEvent;
-import org.eclipse.swt.graphics.*;
-import org.eclipse.swt.widgets.*;
+import org.eclipse.swt.graphics.Cursor;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.widgets.Canvas;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Listener;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.ITreeMapObserver;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 

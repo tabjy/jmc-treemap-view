@@ -5,7 +5,11 @@ import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
-import org.eclipse.swt.widgets.*;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Layout;
+import org.eclipse.swt.widgets.Listener;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.ITreeMapObserver;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 
