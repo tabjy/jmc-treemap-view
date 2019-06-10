@@ -152,7 +152,26 @@ public class TreeMapTile extends Composite {
 		}
 
 		// TODO: better data binding mechanism
-		setToolTipText(node.getLabel());
+		double weight = node.getRealWeight();
+		String unit = "B";
+		if (weight > 1024) {
+			weight /= 1024;
+			unit = "KiB";
+		}
+		if (weight > 1024) {
+			weight /= 1024;
+			unit = "MiB";
+		}
+		if (weight > 1024) {
+			weight /= 1024;
+			unit = "GiB";
+		}
+		if (weight > 1024) {
+			weight /= 1024;
+			unit = "TiB";
+		}
+		
+		setToolTipText(String.format("%s\n%.2f %s", node.getLabel(), weight, unit));
 
 		addLabelIfPossible();
 
