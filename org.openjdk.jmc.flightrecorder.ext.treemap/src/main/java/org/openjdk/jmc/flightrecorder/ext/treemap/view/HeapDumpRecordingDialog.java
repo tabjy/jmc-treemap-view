@@ -59,7 +59,6 @@ public class HeapDumpRecordingDialog extends ElementListSelectionDialog {
 
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				// TODO Auto-generated method stub
 				DiscoveryEntry entry = (DiscoveryEntry) list.getSelection()[0];
 				String path = Util.getDefaultDumpFilePath(entry.getServerDescriptor());
 				fileNameText.setText(path);
