@@ -3,6 +3,7 @@ package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.*;
@@ -29,6 +30,9 @@ public class TreeMapComposite extends Canvas {
 	private final int MIN_DRAGGING_TIME = 60; // in ms
 
 	private Stack<TreeMapNode> zoomStack = new Stack<>();
+
+	private TreeMapToolTip toolTip;
+	private Cursor cursor;
 
 	public static final Color[] COLORS = {new Color(Display.getDefault(), 250, 206, 210), // red
 			new Color(Display.getCurrent(), 185, 214, 255), // blue
@@ -65,10 +69,13 @@ public class TreeMapComposite extends Canvas {
 		lastDim = getSize();
 		zoomStack.push(tree);
 
+		toolTip = new TreeMapToolTip(this);
+
 		initListeners();
 	}
 
-	@Override public void setLayout(Layout layout) {
+	@Override
+	public void setLayout(Layout layout) {
 		// TODO: custom exception type
 		throw new SWTException("cannot set layout to a tree map composite");
 	}
@@ -139,6 +146,43 @@ public class TreeMapComposite extends Canvas {
 			zoomIn(target);
 		};
 		addListener(SWT.MouseDoubleClick, onMouseDoubleClick);
+
+		addListener(SWT.MouseMove, e -> {
+			TreeMapNode target = findNodeAt(e.x, e.y);
+			if (target == null) {
+				return;
+			}
+
+			if (cursor != null && !cursor.isDisposed()) {
+				cursor.dispose();
+			}
+
+			cursor = target.isLeaf() ? new Cursor(Display.getCurrent(), SWT.CURSOR_ARROW) :
+					new Cursor(Display.getCurrent(), SWT.CURSOR_CROSS);
+			setCursor(cursor);
+
+			// TODO: better data binding mechanism
+			double weight = target.getRealWeight();
+			String unit = "B";
+			if (weight > 1024) {
+				weight /= 1024;
+				unit = "KiB";
+			}
+			if (weight > 1024) {
+				weight /= 1024;
+				unit = "MiB";
+			}
+			if (weight > 1024) {
+				weight /= 1024;
+				unit = "GiB";
+			}
+			if (weight > 1024) {
+				weight /= 1024;
+				unit = "TiB";
+			}
+
+			toolTip.setText(String.format("%s\n%.2f %s", target.getPath("."), weight, unit));
+		});
 		// TODO: add keyboard event listener
 	}
 
@@ -162,7 +206,7 @@ public class TreeMapComposite extends Canvas {
 		}
 
 		rootTile.setBounds(0, 0, getClientArea().width, getClientArea().height);
-		rootTile.setColor(0);
+		rootTile.setColorIdx(0);
 		rootTile.setNode(zoomStack.peek());
 
 		gc.setForeground(FONT_COLOR);

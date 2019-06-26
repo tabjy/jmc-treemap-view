@@ -246,5 +246,17 @@ public class TreeMapNode {
 		} while ((tmp = tmp.getParent()) != null);
 		return toReturn;
 	}
+	
+	public String getPath(String delimiters) {
+		if (getParent() == null) {
+			return "";
+		}
+
+		String parentPath = getParent().getPath(delimiters);
+		if (parentPath.length() == 0) {
+			return getLabel();
+		}
+		return getParent().getPath(delimiters) + delimiters + getLabel();
+	}
 }
 

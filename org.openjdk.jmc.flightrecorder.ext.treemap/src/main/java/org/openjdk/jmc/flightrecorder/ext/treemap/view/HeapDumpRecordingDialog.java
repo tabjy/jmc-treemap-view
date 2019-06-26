@@ -128,7 +128,7 @@ public class HeapDumpRecordingDialog extends ElementListSelectionDialog {
 	}
 
 	public String getFilePath() {
-		if (filePath == "") {
+		if (filePath.equals("")) {
 			return null;
 		}
 
