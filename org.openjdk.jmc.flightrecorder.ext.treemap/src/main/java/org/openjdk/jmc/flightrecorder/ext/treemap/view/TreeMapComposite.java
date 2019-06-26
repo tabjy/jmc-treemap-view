@@ -3,13 +3,9 @@ package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.RGB;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Event;
-import org.eclipse.swt.widgets.Layout;
-import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.*;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.ITreeMapObserver;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 
@@ -18,11 +14,11 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.Stack;
 
-public class TreeMapComposite extends Composite {
+public class TreeMapComposite extends Canvas {
 	private TreeMapNode tree;
 
 	private TreeMapTile rootTile;
-	TreeMapTile focusedTile;
+	private TreeMapNode selectedNode;
 
 	static final int X_PADDING = 10;
 	static final int Y_PADDING = 10;
@@ -34,8 +30,7 @@ public class TreeMapComposite extends Composite {
 
 	private Stack<TreeMapNode> zoomStack = new Stack<>();
 
-	static public final Color[] COLORS = {
-			new Color(Display.getDefault(), 250, 206, 210), // red
+	public static final Color[] COLORS = {new Color(Display.getDefault(), 250, 206, 210), // red
 			new Color(Display.getCurrent(), 185, 214, 255), // blue
 			new Color(Display.getCurrent(), 229, 229, 229), // grey
 			new Color(Display.getCurrent(), 255, 231, 199), // orange
@@ -44,6 +39,20 @@ public class TreeMapComposite extends Composite {
 			new Color(Display.getCurrent(), 255, 255, 255), // white
 			new Color(Display.getCurrent(), 205, 249, 212), // green
 	};
+
+	public static final Color[] BORDER_COLORS = {new Color(Display.getDefault(), 235, 194, 198), // red
+			new Color(Display.getCurrent(), 168, 194, 231), // blue
+			new Color(Display.getCurrent(), 214, 214, 214), // grey
+			new Color(Display.getCurrent(), 227, 188, 169), // orange
+			new Color(Display.getCurrent(), 148, 205, 222), // aqua
+			new Color(Display.getCurrent(), 209, 192, 231), // purple
+			new Color(Display.getCurrent(), 238, 238, 238), // white
+			new Color(Display.getCurrent(), 190, 231, 197), // green
+	};
+
+	public final static int FONT_SIZE = 6;
+
+	public final static Color FONT_COLOR = new Color(Display.getDefault(), 64, 64, 64);
 
 	private Set<ITreeMapObserver> observers = new HashSet<>();
 
@@ -69,7 +78,7 @@ public class TreeMapComposite extends Composite {
 		zoomStack.clear();
 		zoomStack.push(tree);
 
-		displayTree();
+		drawRootTile();
 	}
 
 	public TreeMapNode getTree() {
@@ -92,28 +101,72 @@ public class TreeMapComposite extends Composite {
 
 			lastDim = getSize();
 
-			displayTree();
+			drawRootTile();
 		};
 		addListener(SWT.Resize, onResize);
 
+		addPaintListener((e) -> drawRootTile(e.gc));
+
+		Listener onMouseDown = (Event e) -> {
+			switch (e.button) {
+			case 1: // left button
+				TreeMapNode target = findNodeAt(e.x, e.y);
+				if (target == null) {
+					return;
+				}
+				selectNode(target);
+				break;
+			case 2: // middle button
+				zoomFull();
+				break;
+			case 3: // right button
+				zoomOut();
+				break;
+			}
+
+		};
+		addListener(SWT.MouseDown, onMouseDown);
+
+		Listener onMouseDoubleClick = (Event e) -> {
+			if (e.button != 1) { // left button
+				return;
+			}
+
+			TreeMapNode target = findNodeAt(e.x, e.y);
+			if (target == null) {
+				return;
+			}
+			zoomIn(target);
+		};
+		addListener(SWT.MouseDoubleClick, onMouseDoubleClick);
 		// TODO: add keyboard event listener
 	}
 
-	private void displayTree() {
-//		for (Control child : getChildren()) {
-//			child.dispose();
-//		}
+	private TreeMapNode findNodeAt(int x, int y) {
+		if (rootTile == null) {
+			return null;
+		}
 
+		return rootTile.findNodeAt(x, y);
+	}
+
+	private void drawRootTile() {
+		GC gc = new GC(this);
+		drawRootTile(gc);
+		gc.dispose();
+	}
+
+	private void drawRootTile(GC gc) {
 		if (rootTile == null) {
 			rootTile = new TreeMapTile(this);
 		}
-//		else if (rootTile.isDisposed()) {
-//			rootTile = new TreeMapTile(this);
-//		}
 
 		rootTile.setBounds(0, 0, getClientArea().width, getClientArea().height);
 		rootTile.setColor(0);
 		rootTile.setNode(zoomStack.peek());
+
+		gc.setForeground(FONT_COLOR);
+		rootTile.draw(gc);
 	}
 
 	public void zoomIn(TreeMapNode node) {
@@ -127,7 +180,8 @@ public class TreeMapComposite extends Composite {
 			zoomStack.push(ancestors.removeLast());
 		}
 
-		displayTree();
+		drawRootTile();
+		redraw();
 
 		notifyZoomInToObservers(node);
 	}
@@ -135,7 +189,8 @@ public class TreeMapComposite extends Composite {
 	public void zoomOut() {
 		if (zoomStack.size() > 1) {
 			zoomStack.pop();
-			displayTree();
+			drawRootTile();
+			redraw();
 
 			notifyZoomOutToObservers();
 		}
@@ -144,25 +199,21 @@ public class TreeMapComposite extends Composite {
 	public void zoomFull() {
 		zoomStack.clear();
 		zoomStack.push(tree);
-		displayTree();
+		drawRootTile();
+		redraw();
 
 		notifyZoomFullToObservers();
 	}
 
-	public void selectTile(TreeMapTile target) {
-		RGB color = target.getColor().getRGB();
-		Color darker = new Color(Display.getCurrent(), //
-				(int) (color.red * 0.8), (int) (color.green * 0.8), (int) (color.blue * 0.8));
+	public TreeMapNode getSelectedNode() {
+		return selectedNode;
+	}
 
+	public void selectNode(TreeMapNode target) {
+		selectedNode = target;
+		redraw();
 
-		if (focusedTile != null && !focusedTile.isDisposed()) {
-			focusedTile.setBackground(focusedTile.getColor());
-		}
-
-		focusedTile = target;
-		focusedTile.setBackground(darker);
-
-		notifySelectionToObservers(target.getNode());
+		notifySelectionToObservers(selectedNode);
 	}
 
 	public void register(ITreeMapObserver observer) {
