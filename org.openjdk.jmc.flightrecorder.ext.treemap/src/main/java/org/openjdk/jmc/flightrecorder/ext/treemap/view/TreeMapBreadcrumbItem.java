@@ -3,15 +3,14 @@ package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 
 import java.util.Objects;
 
-public class TreeMapBreadcrumbItem extends Canvas {
-
+public class TreeMapBreadcrumbItem {
+	private Composite composite;
 	private TreeMapNode node;
 
 	private Point bound = new Point(0, 0);
@@ -24,16 +23,15 @@ public class TreeMapBreadcrumbItem extends Canvas {
 	public static final Color FOREGROUND_COLOR = new Color(Display.getCurrent(), 64, 64, 64);
 	public static final Color BORDER_COLOR = new Color(Display.getCurrent(), 212, 212, 212);
 
-	public TreeMapBreadcrumbItem(Composite parent, int style) {
-		super(parent, style);
-
+	public TreeMapBreadcrumbItem(final Composite parent) {
+		composite = parent;
 	}
 
 	public void setNode(TreeMapNode node) {
 		this.node = Objects.requireNonNull(node);
 
 		// calculate text bound
-		GC gc = new GC(this);
+		GC gc = new GC(composite);
 		// TODO: better data binding mechanism
 		textBound = gc.textExtent(node.getLabel());
 		gc.dispose(); // TODO: cache GC somehow?

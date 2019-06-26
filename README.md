@@ -31,11 +31,12 @@ The JMC Treemap View is implemented as an Eclipse platform plug-in, thus, you'll
 
 ## TODOs
 
-- [ ] improve treemap rendering performance
+- [x] improve treemap rendering performance
 - [ ] internationalization and localization for UI strings
 - [ ] better treemap data binding mechanism
 - [ ] custom exception type for treemap view
 - [ ] a more suitable icon for recording heap dump
+- [ ] visualize Old Object Sample events
 
 ## License
 This project is licensed under the [GNU GENERAL PUBLIC LICENSE (Version 3)](LICENSE).

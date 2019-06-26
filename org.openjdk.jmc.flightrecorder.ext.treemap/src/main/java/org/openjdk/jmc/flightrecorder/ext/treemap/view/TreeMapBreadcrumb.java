@@ -46,7 +46,7 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 		LinkedList<TreeMapNode> nodes = start.getAncestors();
 
 		while (!nodes.isEmpty()) {
-			TreeMapBreadcrumbItem item = new TreeMapBreadcrumbItem(this, SWT.NONE);
+			TreeMapBreadcrumbItem item = new TreeMapBreadcrumbItem(this);
 			item.setNode(nodes.removeLast());
 			items.push(item);
 		}
@@ -150,7 +150,7 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 			child.dispose();
 		}
 
-		TreeMapBreadcrumbItem item = new TreeMapBreadcrumbItem(this, SWT.NONE);
+		TreeMapBreadcrumbItem item = new TreeMapBreadcrumbItem(this);
 		item.setNode(checkTreeMap(treeMap).getTree());
 
 		items.clear();
@@ -164,7 +164,7 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 	}
 
 	@Override public void notifyZoomOut() {
-		items.pop().dispose();
+		// items.pop().dispose();
 		redraw();
 	}
 }

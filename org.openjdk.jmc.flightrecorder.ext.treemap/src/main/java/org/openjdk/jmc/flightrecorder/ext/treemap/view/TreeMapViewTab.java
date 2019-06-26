@@ -176,7 +176,13 @@ public class TreeMapViewTab extends CTabItem {
 			root.setLabel("[root]"); // TODO: mark not translatable
 
 			displayMessage("Rendering tree map..."); // TODO: i18n
-			DisplayToolkit.inDisplayThread().execute(() -> setModel(root));
+			DisplayToolkit.inDisplayThread().execute(() -> {
+				try {
+					setModel(root);
+				} catch (Exception e) {
+					handleException(e);
+				}
+			});
 
 			return null;
 		}, MODEL_EXECUTOR).exceptionally((t) -> {
