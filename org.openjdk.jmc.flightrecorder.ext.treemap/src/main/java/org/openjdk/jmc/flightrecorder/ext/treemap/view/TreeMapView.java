@@ -65,7 +65,8 @@ public class TreeMapView extends ViewPart {
 			setToolTipText("Record a heap dump"); // TODO: i18n
 		}
 
-		@Override public void run() {
+		@Override
+		public void run() {
 			IWorkbenchWindow window = FlightRecorderUI.getDefault().getWorkbench().getActiveWorkbenchWindow();
 			HeapDumpRecordingDialog dialog = new HeapDumpRecordingDialog(window.getShell());
 			dialog.setElements(LocalJVMToolkit.getAttachableJVMs());
@@ -95,15 +96,16 @@ public class TreeMapView extends ViewPart {
 
 			TreeMapViewTab tab = new TreeMapViewTab(tabFolder, dialog.getFilePath());
 
-			tab.displayMessage("Saving heap dump of " + entry.getServerDescriptor().getDisplayName() + " to " + dialog
-					.getFilePath() + "..."); // TODO: i18n
+			tab.displayMessage("Saving heap dump of " + entry.getServerDescriptor().getDisplayName() + " to "
+					+ dialog.getFilePath() + "..."); // TODO: i18n
 
 			tab.recordAndBuildModel(entry, dialog.getFilePath());
 			tabFolder.setSelection(tab);
 		}
 	}
 
-	@Override public void init(IViewSite site) throws PartInitException {
+	@Override
+	public void init(IViewSite site) throws PartInitException {
 		super.init(site);
 
 		IToolBarManager toolBar = site.getActionBars().getToolBarManager();
@@ -111,11 +113,13 @@ public class TreeMapView extends ViewPart {
 		toolBar.add(new RecordHeapDumpAction());
 	}
 
-	@Override public void createPartControl(Composite parent) {
+	@Override
+	public void createPartControl(Composite parent) {
 		tabFolder = new CTabFolder(parent, SWT.NONE);
 	}
 
-	@Override public void setFocus() {
+	@Override
+	public void setFocus() {
 		if (tabFolder != null) {
 			tabFolder.setFocus();
 		}

@@ -52,7 +52,8 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 		}
 	}
 
-	@Override public Point computeSize(int wHint, int hHint, boolean changed) {
+	@Override
+	public Point computeSize(int wHint, int hHint, boolean changed) {
 		int width = 0;
 		int height = 0;
 		for (TreeMapBreadcrumbItem item : items) {
@@ -133,7 +134,8 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 		return treeMap;
 	}
 
-	@Override public void dispose() {
+	@Override
+	public void dispose() {
 		if (cursor != null && !cursor.isDisposed()) {
 			cursor.dispose();
 		}
@@ -141,11 +143,13 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 		super.dispose();
 	}
 
-	@Override public void notifySelection(TreeMapNode node) {
+	@Override
+	public void notifySelection(TreeMapNode node) {
 		// intentionally empty
 	}
 
-	@Override public void notifyZoomFull() {
+	@Override
+	public void notifyZoomFull() {
 		for (Control child : getChildren()) {
 			child.dispose();
 		}
@@ -158,12 +162,14 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 		redraw();
 	}
 
-	@Override public void notifyZoomIn(TreeMapNode node) {
+	@Override
+	public void notifyZoomIn(TreeMapNode node) {
 		setTreeMap(treeMap, node);
 		redraw();
 	}
 
-	@Override public void notifyZoomOut() {
+	@Override
+	public void notifyZoomOut() {
 		// items.pop().dispose();
 		redraw();
 	}

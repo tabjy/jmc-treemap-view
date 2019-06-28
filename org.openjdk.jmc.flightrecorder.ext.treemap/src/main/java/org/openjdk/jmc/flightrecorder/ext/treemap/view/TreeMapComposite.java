@@ -157,8 +157,8 @@ public class TreeMapComposite extends Canvas {
 				cursor.dispose();
 			}
 
-			cursor = target.isLeaf() ? new Cursor(Display.getCurrent(), SWT.CURSOR_ARROW) :
-					new Cursor(Display.getCurrent(), SWT.CURSOR_CROSS);
+			cursor = target.isLeaf() ? new Cursor(Display.getCurrent(), SWT.CURSOR_ARROW)
+					: new Cursor(Display.getCurrent(), SWT.CURSOR_CROSS);
 			setCursor(cursor);
 
 			// TODO: better data binding mechanism

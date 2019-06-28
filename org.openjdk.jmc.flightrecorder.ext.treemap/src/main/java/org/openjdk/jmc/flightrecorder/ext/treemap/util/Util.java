@@ -23,7 +23,7 @@ public class Util {
 	public static String getDefaultFileName(IServerDescriptor descriptor) {
 		return "java_pid" + descriptor.getJvmInfo().getPid() + ".hprof";
 	}
-	
+
 	public static String getDefaultDumpFilePath(IServerDescriptor descriptor) {
 		if (descriptor == null) {
 			return "";

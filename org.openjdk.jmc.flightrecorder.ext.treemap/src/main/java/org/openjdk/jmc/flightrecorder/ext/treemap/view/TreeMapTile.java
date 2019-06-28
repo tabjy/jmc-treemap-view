@@ -31,7 +31,6 @@ public class TreeMapTile {
 		font = new Font(Display.getCurrent(), fd[0]);
 	}
 
-
 	public void setNode(TreeMapNode node) {
 		this.node = node;
 	}

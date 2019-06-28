@@ -40,27 +40,27 @@ import com.redhat.thermostat.vm.heap.analysis.common.ObjectHistogram;
 import com.redhat.thermostat.vm.heap.analysis.common.ObjectHistogramNodeDataExtractor;
 
 public class TreeMapViewTab extends CTabItem {
-	
+
 	private Composite container;
 	private StackLayout containerLayout;
-	
+
 	private static ExecutorService MODEL_EXECUTOR = Executors.newFixedThreadPool(1);
 	private CompletableFuture<Void> treeModelCalculator;
-	
+
 	private Composite treeMapContainer;
 	private TreeMapComposite treeMap;
 	private TreeMapBreadcrumb breadcrumb;
 
 	private Composite messageContainer;
 	private Label message;
-	
+
 	public TreeMapViewTab(CTabFolder parent, String filePath) {
 		super(parent, SWT.CLOSE);
-	
-		File file = new File(filePath);	
+
+		File file = new File(filePath);
 		setText(file.getName());
 		setToolTipText(file.getPath());
-		
+
 		container = new Group(parent, SWT.PUSH);
 		containerLayout = new StackLayout();
 		container.setLayout(containerLayout);
@@ -92,20 +92,20 @@ public class TreeMapViewTab extends CTabItem {
 		treeMap.setLayoutData(tmLayoutData);
 
 		containerLayout.topControl = messageContainer;
-		
+
 		setControl(container);
 	}
-	
+
 	public TreeMapViewTab(CTabFolder parent, String filePath, DiscoveryEntry jvm) {
 		this(parent, filePath);
 	}
-	
+
 	@Override
 	public void dispose() {
 		container.dispose();
 		super.dispose();
 	}
-	
+
 	void recordAndBuildModel(DiscoveryEntry entry, String filePath) {
 		if (treeModelCalculator != null) {
 			treeModelCalculator.cancel(true);
@@ -191,7 +191,7 @@ public class TreeMapViewTab extends CTabItem {
 		});
 
 	}
-	
+
 	void setModel(TreeMapNode root) {
 		treeMap.setTree(root);
 		breadcrumb.setTreeMap(treeMap);
@@ -209,7 +209,7 @@ public class TreeMapViewTab extends CTabItem {
 		displayMessage("Unable to load heap dump:" + "\n\t" + e.getLocalizedMessage()); // TODO: i18n
 		return;
 	}
-	
+
 	void displayMessage(String msg) {
 		DisplayToolkit.inDisplayThread().execute(() -> {
 			message.setText(msg);
