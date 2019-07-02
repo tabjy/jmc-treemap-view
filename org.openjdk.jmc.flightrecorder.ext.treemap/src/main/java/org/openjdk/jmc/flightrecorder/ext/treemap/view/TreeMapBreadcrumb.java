@@ -50,6 +50,8 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 			item.setNode(nodes.removeLast());
 			items.push(item);
 		}
+
+		redraw();
 	}
 
 	@Override

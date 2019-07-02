@@ -21,9 +21,11 @@ public class TreeMapComposite extends Canvas {
 	private TreeMapTile rootTile;
 	private TreeMapNode selectedNode;
 
-	static final int X_PADDING = 10;
-	static final int Y_PADDING = 10;
+	static final int X_PADDING = 13;
+	static final int Y_PADDING = 13;
 	static final int MIN_SIZE = 1;
+	static final int FONT_SIZE = 8;
+	static final Color FONT_COLOR = new Color(Display.getDefault(), 64, 64, 64);
 
 	private Point lastDim;
 	private long lastCall = 0;
@@ -54,10 +56,6 @@ public class TreeMapComposite extends Canvas {
 			new Color(Display.getCurrent(), 190, 231, 197), // green
 	};
 
-	public final static int FONT_SIZE = 6;
-
-	public final static Color FONT_COLOR = new Color(Display.getDefault(), 64, 64, 64);
-
 	private Set<ITreeMapObserver> observers = new HashSet<>();
 
 	public TreeMapComposite(Composite parent, int style) {
@@ -85,7 +83,7 @@ public class TreeMapComposite extends Canvas {
 		zoomStack.clear();
 		zoomStack.push(tree);
 
-		drawRootTile();
+		redraw();
 	}
 
 	public TreeMapNode getTree() {
@@ -108,7 +106,7 @@ public class TreeMapComposite extends Canvas {
 
 			lastDim = getSize();
 
-			drawRootTile();
+			redraw();
 		};
 		addListener(SWT.Resize, onResize);
 
@@ -181,7 +179,7 @@ public class TreeMapComposite extends Canvas {
 				unit = "TiB";
 			}
 
-			toolTip.setText(String.format("%s\n%.2f %s", target.getPath("."), weight, unit));
+			toolTip.setText(String.format("%s\n%.2f %s", target.getLabel(), weight, unit));
 		});
 		// TODO: add keyboard event listener
 	}
@@ -192,12 +190,6 @@ public class TreeMapComposite extends Canvas {
 		}
 
 		return rootTile.findNodeAt(x, y);
-	}
-
-	private void drawRootTile() {
-		GC gc = new GC(this);
-		drawRootTile(gc);
-		gc.dispose();
 	}
 
 	private void drawRootTile(GC gc) {
@@ -224,7 +216,6 @@ public class TreeMapComposite extends Canvas {
 			zoomStack.push(ancestors.removeLast());
 		}
 
-		drawRootTile();
 		redraw();
 
 		notifyZoomInToObservers(node);
@@ -233,7 +224,6 @@ public class TreeMapComposite extends Canvas {
 	public void zoomOut() {
 		if (zoomStack.size() > 1) {
 			zoomStack.pop();
-			drawRootTile();
 			redraw();
 
 			notifyZoomOutToObservers();
@@ -243,7 +233,6 @@ public class TreeMapComposite extends Canvas {
 	public void zoomFull() {
 		zoomStack.clear();
 		zoomStack.push(tree);
-		drawRootTile();
 		redraw();
 
 		notifyZoomFullToObservers();

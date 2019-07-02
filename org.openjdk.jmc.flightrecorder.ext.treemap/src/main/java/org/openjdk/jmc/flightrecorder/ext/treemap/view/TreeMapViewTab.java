@@ -7,9 +7,12 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
+import javax.management.JMException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
@@ -25,11 +28,16 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.openjdk.jmc.browser.attach.LocalJVMToolkit.DiscoveryEntry;
+import org.openjdk.jmc.common.item.IItem;
+import org.openjdk.jmc.common.item.IItemCollection;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMap;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
+import org.openjdk.jmc.flightrecorder.ext.treemap.util.Util;
+import org.openjdk.jmc.flightrecorder.jdk.JdkTypeIDs;
+import org.openjdk.jmc.flightrecorder.memleak.ReferenceTreeModel;
 import org.openjdk.jmc.flightrecorder.ui.FlightRecorderUI;
-import org.openjdk.jmc.rjmx.ConnectionException;
 import org.openjdk.jmc.rjmx.IConnectionListener;
+import org.openjdk.jmc.rjmx.ServiceNotAvailableException;
 import org.openjdk.jmc.rjmx.internal.DefaultConnectionHandle;
 import org.openjdk.jmc.rjmx.internal.RJMXConnection;
 import org.openjdk.jmc.ui.misc.DisplayToolkit;
@@ -40,12 +48,10 @@ import com.redhat.thermostat.vm.heap.analysis.common.ObjectHistogram;
 import com.redhat.thermostat.vm.heap.analysis.common.ObjectHistogramNodeDataExtractor;
 
 public class TreeMapViewTab extends CTabItem {
+	private CompletableFuture<TreeMapNode> treeModelCalculator;
 
 	private Composite container;
 	private StackLayout containerLayout;
-
-	private static ExecutorService MODEL_EXECUTOR = Executors.newFixedThreadPool(1);
-	private CompletableFuture<Void> treeModelCalculator;
 
 	private Composite treeMapContainer;
 	private TreeMapComposite treeMap;
@@ -54,12 +60,8 @@ public class TreeMapViewTab extends CTabItem {
 	private Composite messageContainer;
 	private Label message;
 
-	public TreeMapViewTab(CTabFolder parent, String filePath) {
-		super(parent, SWT.CLOSE);
-
-		File file = new File(filePath);
-		setText(file.getName());
-		setToolTipText(file.getPath());
+	public TreeMapViewTab(CTabFolder parent, int style) {
+		super(parent, style);
 
 		container = new Group(parent, SWT.PUSH);
 		containerLayout = new StackLayout();
@@ -92,107 +94,113 @@ public class TreeMapViewTab extends CTabItem {
 		treeMap.setLayoutData(tmLayoutData);
 
 		containerLayout.topControl = messageContainer;
-
 		setControl(container);
-	}
-
-	public TreeMapViewTab(CTabFolder parent, String filePath, DiscoveryEntry jvm) {
-		this(parent, filePath);
 	}
 
 	@Override
 	public void dispose() {
-		container.dispose();
+		if (treeModelCalculator != null) {
+			treeModelCalculator.cancel(true);
+		}
+
 		super.dispose();
 	}
 
-	void recordAndBuildModel(DiscoveryEntry entry, String filePath) {
-		if (treeModelCalculator != null) {
-			treeModelCalculator.cancel(true);
-		}
+	public void setModelFromFile(String filePath) {
+		File file = new File(filePath);
+		setText(file.getName());
+		setToolTipText(file.getPath());
 
-		// FIXME: This part is really hacky and fragile. Do it properly if possible.
-		treeModelCalculator = CompletableFuture.supplyAsync((Supplier<Void>) () -> {
-			RJMXConnection rjmxConn = new RJMXConnection(entry.getConnectionDescriptor(), entry.getServerDescriptor(),
-					() -> {
-						displayMessage("Unable to establish a RJMX connection."); // TODO: i18n
-					});
-
+		treeModelCalculator = CompletableFuture.supplyAsync(() -> {
 			try {
-				rjmxConn.connect();
-			} catch (ConnectionException e) {
-				rjmxConn.close();
-				throw new UncheckedIOException(e);
-			}
-			DefaultConnectionHandle handle = new DefaultConnectionHandle(rjmxConn, null, new IConnectionListener[] {});
-
-			try {
-				MBeanServerConnection mBeanConn = handle.getServiceOrThrow(MBeanServerConnection.class);
-				mBeanConn.invoke(new ObjectName("com.sun.management:type=HotSpotDiagnostic"), "dumpHeap",
-						new Object[] {filePath, Boolean.TRUE},
-						new String[] {String.class.getName(), boolean.class.getName()});
-			} catch (ConnectionException e) {
-				throw new UncheckedIOException(e);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			} finally {
-				try {
-					handle.close();
-				} catch (IOException e) {
-					// intentionally empty
-				}
-				rjmxConn.close();
-			}
-
-			buildModel(filePath);
-
-			return null;
-		}).exceptionally((Throwable t) -> {
-			handleException(t);
-			return null;
-		});
-
-	}
-
-	void buildModel(String filePath) {
-		if (treeModelCalculator != null) {
-			treeModelCalculator.cancel(true);
-		}
-
-		treeModelCalculator = CompletableFuture.supplyAsync((Supplier<Void>) () -> {
-			displayMessage("Loading heap dump..."); // TODO: i18n
-
-			ObjectHistogram histogram;
-			try {
-				histogram = (new HistogramLoader()).load(filePath);
+				return buildModelFromFile(filePath);
 			} catch (IOException e) {
 				throw new UncheckedIOException(e);
 			}
+		});
 
-			displayMessage("Building tree model..."); // TODO: i18n
-			TreeMap<ObjectHistogram, HistogramRecord> map = new TreeMap<>(histogram,
-					new ObjectHistogramNodeDataExtractor());
-			TreeMapNode root = map.getRoot();
-			root.setLabel("[root]"); // TODO: mark not translatable
-
-			displayMessage("Rendering tree map..."); // TODO: i18n
-			DisplayToolkit.inDisplayThread().execute(() -> {
-				try {
-					setModel(root);
-				} catch (Exception e) {
-					handleException(e);
-				}
-			});
-
-			return null;
-		}, MODEL_EXECUTOR).exceptionally((t) -> {
+		treeModelCalculator.thenAcceptAsync(this::setModel, DisplayToolkit.inDisplayThread()).exceptionally((t) -> {
 			handleException(t);
 			return null;
 		});
-
 	}
 
-	void setModel(TreeMapNode root) {
+	public void setModelFromJvm(DiscoveryEntry entry, String filePath) {
+		File file = new File(filePath);
+		setText(file.getName());
+		setToolTipText(file.getPath());
+
+		treeModelCalculator = CompletableFuture.supplyAsync(() -> {
+			try {
+				return buildModelFromJvm(entry, filePath);
+			} catch (ServiceNotAvailableException | JMException | IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+
+		treeModelCalculator.thenAcceptAsync(this::setModel, DisplayToolkit.inDisplayThread()).exceptionally((t) -> {
+			handleException(t);
+			return null;
+		});
+	}
+
+	public void setModelFromOldObjectSamples(IItemCollection events) {
+		treeModelCalculator = CompletableFuture.supplyAsync((Supplier<TreeMapNode>) () -> {
+			return buildModelFromOldObjectSamples(events);
+		});
+
+		treeModelCalculator.thenAcceptAsync(this::setModel, DisplayToolkit.inDisplayThread()).exceptionally((t) -> {
+			handleException(t);
+			return null;
+		});
+	}
+
+	private TreeMapNode buildModelFromFile(String filePath) throws IOException {
+		displayMessage("Loading heap dump..."); // TODO: i18n
+
+		ObjectHistogram histogram = (new HistogramLoader()).load(filePath);
+
+		displayMessage("Building tree model..."); // TODO: i18n
+		TreeMap<ObjectHistogram, HistogramRecord> map = new TreeMap<>(histogram,
+				new ObjectHistogramNodeDataExtractor());
+		TreeMapNode root = map.getRoot();
+		root.setLabel("[root]"); // TODO: mark not translatable
+
+		displayMessage("Rendering tree map..."); // TODO: i18n
+		return root;
+	}
+
+	private TreeMapNode buildModelFromJvm(DiscoveryEntry entry, String filePath)
+			throws ServiceNotAvailableException, JMException, IOException {
+		RJMXConnection rjmxConn = new RJMXConnection(entry.getConnectionDescriptor(), entry.getServerDescriptor(),
+				() -> {
+					displayMessage("Unable to establish a RJMX connection."); // TODO: i18n
+				});
+		rjmxConn.connect();
+
+		DefaultConnectionHandle handle = new DefaultConnectionHandle(rjmxConn, null, new IConnectionListener[] {});
+
+		MBeanServerConnection mBeanConn = handle.getServiceOrThrow(MBeanServerConnection.class);
+		mBeanConn.invoke(new ObjectName("com.sun.management:type=HotSpotDiagnostic"), "dumpHeap",
+				new Object[] {filePath, Boolean.TRUE}, new String[] {String.class.getName(), boolean.class.getName()});
+		handle.close();
+		rjmxConn.close();
+
+		return buildModelFromFile(filePath);
+	}
+
+	private TreeMapNode buildModelFromOldObjectSamples(IItemCollection events) {
+		IItem selected = events.iterator().next().iterator().next();
+
+		if (!selected.getType().getIdentifier().equals(JdkTypeIDs.OLD_OBJECT_SAMPLE)) {
+			throw new IllegalArgumentException("Selected item is not a OldObjectSample"); //$NON-NLS-1$
+		}
+
+		ReferenceTreeModel tree = ReferenceTreeModel.buildReferenceTree(events);
+		return Util.buildTreefromReferenceTreeObject(tree.getRootObjects().get(0));
+	}
+
+	public void setModel(TreeMapNode root) {
 		treeMap.setTree(root);
 		breadcrumb.setTreeMap(treeMap);
 
@@ -210,10 +218,9 @@ public class TreeMapViewTab extends CTabItem {
 		return;
 	}
 
-	void displayMessage(String msg) {
+	private void displayMessage(String msg) {
 		DisplayToolkit.inDisplayThread().execute(() -> {
 			message.setText(msg);
-
 			containerLayout.topControl = messageContainer;
 			container.layout(true, true);
 		});

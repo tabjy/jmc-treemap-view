@@ -1,5 +1,6 @@
 package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.*;
 import org.eclipse.swt.widgets.Display;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.SquarifiedTreeMap;
@@ -21,6 +22,8 @@ public class TreeMapTile {
 	private Font font;
 
 	private List<TreeMapTile> childTiles = new ArrayList<>();
+
+	private static final String ELLIPSIS = "..."; //$NON-NLS-1$
 
 	public TreeMapTile(final TreeMapComposite composite) {
 		this.composite = composite;
@@ -64,29 +67,33 @@ public class TreeMapTile {
 
 	// add label to tile if space permits
 	private void addLabelIfPossible(GC gc) {
-//		label.setVisible(false);
-
 		// TODO: better data binding mechanism
 		String text = node.getLabel();
 		if (text == null || text.equals("")) {
 			return;
 		}
 
-		Point availableSpace = new Point(bounds.width, bounds.height);
+		if (!tryAddLabel(gc, text)) {
+			tryAddLabel(gc, ELLIPSIS);
+		}
+	}
 
-//		GC gc = new GC(label);
+	private boolean tryAddLabel(GC gc, String text) {
+		Point availableSpace = new Point(bounds.width - 2, bounds.height - 2); // -2 for the border
+
 		// TODO: better data binding mechanism
-		Point textBound = gc.textExtent(node.getLabel());
-//		gc.dispose();
+		Point textBound = gc.textExtent(text);
 
 		if (textBound.x > availableSpace.x || textBound.y > availableSpace.y) {
-			return;
+			return false;
 		}
 
 		gc.setFont(font);
 
 		gc.setForeground(TreeMapComposite.FONT_COLOR);
-		gc.drawText(text, bounds.x, bounds.y);
+		gc.drawText(text, bounds.x + 1, bounds.y + 1); // +1 so it doesn't overlap with the border
+
+		return true;
 	}
 
 	// add child tiles if space permits
@@ -101,7 +108,6 @@ public class TreeMapTile {
 		}
 
 		// calculate child rectangles
-		// TODO: investigate why hardcoded as LinkedList
 		LinkedList<TreeMapNode> elements = new LinkedList<>(Objects.requireNonNull(node.getChildren()));
 		TreeMapNode.sort(elements);
 		SquarifiedTreeMap algorithm = new SquarifiedTreeMap(availableRegion, elements);
@@ -122,7 +128,6 @@ public class TreeMapTile {
 			childTile.setBounds((int) childBounds.x + bounds.x + TreeMapComposite.X_PADDING,
 					(int) childBounds.y + bounds.y + TreeMapComposite.Y_PADDING, (int) childBounds.width,
 					(int) childBounds.height);
-			// childTile.setColorIdx((colorIdx + 1) % TreeMapComposite.COLORS.length);
 			childTile.setColorIdx((colorIdx + 1) % TreeMapComposite.COLORS.length);
 			childTile.setNode(child);
 
@@ -151,12 +156,11 @@ public class TreeMapTile {
 				bounds.x, bounds.y + bounds.height};
 
 		gc.fillPolygon(polygon);
+		gc.setForeground(borderColor);
+		gc.drawPolygon(polygon);
 
 		addLabelIfPossible(gc);
 		addChildTilesIfPossible(gc);
-
-		gc.setForeground(borderColor);
-		gc.drawPolygon(polygon);
 	}
 
 	public TreeMapNode findNodeAt(int x, int y) {

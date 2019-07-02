@@ -3,25 +3,38 @@ package org.openjdk.jmc.flightrecorder.ext.treemap.view;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.IViewSite;
+import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.ViewPart;
 import org.openjdk.jmc.browser.attach.LocalJVMToolkit;
 import org.openjdk.jmc.browser.attach.LocalJVMToolkit.DiscoveryEntry;
+import org.openjdk.jmc.common.item.IItem;
+import org.openjdk.jmc.common.item.IItemCollection;
 import org.openjdk.jmc.flightrecorder.ext.treemap.util.Util;
+import org.openjdk.jmc.flightrecorder.jdk.JdkTypeIDs;
 import org.openjdk.jmc.flightrecorder.ui.FlightRecorderUI;
+import org.openjdk.jmc.rjmx.ServiceNotAvailableException;
 import org.openjdk.jmc.ui.CoreImages;
+import org.openjdk.jmc.ui.common.util.AdapterUtil;
 
 import java.io.File;
+import java.io.IOException;
 
-public class TreeMapView extends ViewPart {
+import javax.management.JMException;
+
+public class TreeMapView extends ViewPart implements ISelectionListener {
 	private CTabFolder tabFolder;
+	private TreeMapViewTab oldObjSampleTab;
 
 	private class LoadHeapDumpAction extends Action {
 		private LoadHeapDumpAction() {
@@ -36,8 +49,8 @@ public class TreeMapView extends ViewPart {
 				return;
 			}
 
-			TreeMapViewTab tab = new TreeMapViewTab(tabFolder, path);
-			tab.buildModel(path);
+			TreeMapViewTab tab = new TreeMapViewTab(tabFolder, SWT.CLOSE);
+			tab.setModelFromFile(path);
 			tabFolder.setSelection(tab);
 		}
 
@@ -94,12 +107,9 @@ public class TreeMapView extends ViewPart {
 				}
 			}
 
-			TreeMapViewTab tab = new TreeMapViewTab(tabFolder, dialog.getFilePath());
+			TreeMapViewTab tab = new TreeMapViewTab(tabFolder, SWT.NONE);
 
-			tab.displayMessage("Saving heap dump of " + entry.getServerDescriptor().getDisplayName() + " to "
-					+ dialog.getFilePath() + "..."); // TODO: i18n
-
-			tab.recordAndBuildModel(entry, dialog.getFilePath());
+			tab.setModelFromJvm(entry, dialog.getFilePath());
 			tabFolder.setSelection(tab);
 		}
 	}
@@ -111,11 +121,22 @@ public class TreeMapView extends ViewPart {
 		IToolBarManager toolBar = site.getActionBars().getToolBarManager();
 		toolBar.add(new LoadHeapDumpAction());
 		toolBar.add(new RecordHeapDumpAction());
+
+		getSite().getPage().addSelectionListener(this);
+	}
+
+	@Override
+	public void dispose() {
+		getSite().getPage().removeSelectionListener(this);
+		super.dispose();
 	}
 
 	@Override
 	public void createPartControl(Composite parent) {
 		tabFolder = new CTabFolder(parent, SWT.NONE);
+
+		oldObjSampleTab = new TreeMapViewTab(tabFolder, SWT.NONE);
+		oldObjSampleTab.setText("Old Object Sample");
 	}
 
 	@Override
@@ -123,5 +144,36 @@ public class TreeMapView extends ViewPart {
 		if (tabFolder != null) {
 			tabFolder.setFocus();
 		}
+	}
+
+	@Override
+	public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+		if (!(selection instanceof IStructuredSelection)) {
+			return;
+		}
+
+		Object first = ((IStructuredSelection) selection).getFirstElement();
+		IItemCollection items = AdapterUtil.getAdapter(first, IItemCollection.class);
+
+		if (items == null) {
+			return;
+		}
+
+		if (!items.hasItems()) {
+			return;
+		}
+
+		if (!items.iterator().next().hasItems()) {
+			return;
+		}
+
+		IItem selectedItem = items.iterator().next().iterator().next();
+
+		if (!selectedItem.getType().getIdentifier().equals(JdkTypeIDs.OLD_OBJECT_SAMPLE)) {
+			return;
+		}
+
+		oldObjSampleTab.setModelFromOldObjectSamples(items);
+		tabFolder.setSelection(oldObjSampleTab);
 	}
 }
