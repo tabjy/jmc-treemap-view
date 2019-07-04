@@ -8,14 +8,14 @@ import org.openjdk.jmc.common.item.IMemberAccessor;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.flightrecorder.ext.treemap.model.TreeMapNode;
 import org.openjdk.jmc.flightrecorder.memleak.ReferenceTreeObject;
-import org.openjdk.jmc.rcp.application.ApplicationPlugin;
+import org.openjdk.jmc.flightrecorder.ui.FlightRecorderUI;
 import org.openjdk.jmc.rjmx.IServerDescriptor;
 
 public class Util {
 	private final static String FILE_OPEN_FILTER_PATH = "file.open.filter.path"; //$NON-NLS-1$
 
 	public static String getDefaultFilterPath() {
-		String result = getIfExists(ApplicationPlugin.getDefault().getDialogSettings().get(FILE_OPEN_FILTER_PATH));
+		String result = getIfExists(FlightRecorderUI.getDefault().getDialogSettings().get(FILE_OPEN_FILTER_PATH));
 		if (result == null) {
 			result = getIfExists(System.getProperty("user.home"));
 		}
