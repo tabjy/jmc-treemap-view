@@ -25,6 +25,9 @@ public class HeapDumpRecordingDialog extends ElementListSelectionDialog {
 	private String filePath;
 	private Text fileNameText;
 	private FilteredList list;
+	private Button browseButton;
+
+	private DiscoveryEntry selectedJvm;
 
 	public HeapDumpRecordingDialog(Shell parent) {
 		super(parent, new LabelProvider() {
@@ -52,30 +55,38 @@ public class HeapDumpRecordingDialog extends ElementListSelectionDialog {
 		container.setLayout(layout);
 
 		GridData gd1 = new GridData(SWT.FILL, SWT.FILL, true, false);
-		Composite settingsContainer = createSettingsContainer(container);
+		Composite settingsContainer = createDestinationContainer(container);
 		settingsContainer.setLayoutData(gd1);
 
 		list.addSelectionListener(new SelectionListener() {
 
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				if (list.getSelection().length == 0) {
+					fileNameText.setText("");
+					filePath = "";
+					browseButton.setEnabled(false);
+					selectedJvm = null;
+					return;
+				}
 				DiscoveryEntry entry = (DiscoveryEntry) list.getSelection()[0];
 				String path = Util.getDefaultDumpFilePath(entry.getServerDescriptor());
 				fileNameText.setText(path);
 				filePath = path;
+				browseButton.setEnabled(true);
+				selectedJvm = entry;
 			}
 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {
 				// intentionally empty
 			}
-
 		});
 
 		return parent;
 	}
 
-	private Composite createSettingsContainer(Composite parent) {
+	private Composite createDestinationContainer(Composite parent) {
 		Composite container = new Composite(parent, SWT.NONE);
 		int cols = 5;
 		GridLayout layout = new GridLayout(cols, false);
@@ -97,8 +108,9 @@ public class HeapDumpRecordingDialog extends ElementListSelectionDialog {
 		fileNameText.setLayoutData(gd2);
 
 		GridData gd3 = new GridData(SWT.FILL, SWT.FILL, false, true);
-		Button browseButton = new Button(container, SWT.NONE);
+		browseButton = new Button(container, SWT.NONE);
 		browseButton.setText("Browse...");
+		browseButton.setEnabled(false);
 		browseButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -106,7 +118,7 @@ public class HeapDumpRecordingDialog extends ElementListSelectionDialog {
 				FileDialog dialog = new FileDialog(window.getShell(), SWT.SAVE | SWT.SINGLE);
 				dialog.setFilterExtensions(new String[] {"*.hprof"});
 				dialog.setFilterPath(Util.getDefaultFilterPath());
-				dialog.setFileName("");
+				dialog.setFileName(Util.getDefaultFileName(selectedJvm.getServerDescriptor()));
 				dialog.setText("Save Heap Dump");
 
 				String path = dialog.open();
