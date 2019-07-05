@@ -107,7 +107,7 @@ public class TreeMapView extends ViewPart implements ISelectionListener {
 				}
 			}
 
-			TreeMapViewTab tab = new TreeMapViewTab(tabFolder, SWT.NONE);
+			TreeMapViewTab tab = new TreeMapViewTab(tabFolder, SWT.CLOSE);
 
 			tab.setModelFromJvm(entry, dialog.getFilePath());
 			tabFolder.setSelection(tab);
