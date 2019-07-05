@@ -172,7 +172,6 @@ public class TreeMapBreadcrumb extends Canvas implements ITreeMapObserver {
 
 	@Override
 	public void notifyZoomOut() {
-		// items.pop().dispose();
 		redraw();
 	}
 }

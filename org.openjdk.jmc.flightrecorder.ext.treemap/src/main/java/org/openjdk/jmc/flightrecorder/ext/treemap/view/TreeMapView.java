@@ -148,32 +148,44 @@ public class TreeMapView extends ViewPart implements ISelectionListener {
 
 	@Override
 	public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+		if (!setOldObjectSample(selection)) {
+			clearOldObjectSample();
+		}
+	}
+
+	private boolean setOldObjectSample(ISelection selection) {
 		if (!(selection instanceof IStructuredSelection)) {
-			return;
+			return false;
 		}
 
 		Object first = ((IStructuredSelection) selection).getFirstElement();
 		IItemCollection items = AdapterUtil.getAdapter(first, IItemCollection.class);
 
 		if (items == null) {
-			return;
+			return false;
 		}
 
 		if (!items.hasItems()) {
-			return;
+			return false;
 		}
 
 		if (!items.iterator().next().hasItems()) {
-			return;
+			return false;
 		}
 
 		IItem selectedItem = items.iterator().next().iterator().next();
 
 		if (!selectedItem.getType().getIdentifier().equals(JdkTypeIDs.OLD_OBJECT_SAMPLE)) {
-			return;
+			return false;
 		}
 
 		oldObjSampleTab.setModelFromOldObjectSamples(items);
 		tabFolder.setSelection(oldObjSampleTab);
+
+		return true;
+	}
+
+	private void clearOldObjectSample() {
+		oldObjSampleTab.clearModel();
 	}
 }

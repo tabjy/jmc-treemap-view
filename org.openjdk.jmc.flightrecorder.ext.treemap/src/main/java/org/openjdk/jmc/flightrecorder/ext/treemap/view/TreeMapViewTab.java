@@ -44,6 +44,8 @@ import com.redhat.thermostat.vm.heap.analysis.common.ObjectHistogram;
 import com.redhat.thermostat.vm.heap.analysis.common.ObjectHistogramNodeDataExtractor;
 
 public class TreeMapViewTab extends CTabItem {
+	private static final String DEFAULT_MESSAGE = "Select an Old Object Sample event to display as a treemap.";
+
 	private CompletableFuture<TreeMapNode> treeModelCalculator;
 
 	private Composite container;
@@ -81,16 +83,10 @@ public class TreeMapViewTab extends CTabItem {
 		bcLayoutData.right = new FormAttachment(100, 0);
 		breadcrumb.setLayoutData(bcLayoutData);
 
-		treeMap = new TreeMapComposite(treeMapContainer, SWT.BORDER);
-		FormData tmLayoutData = new FormData();
-		tmLayoutData.bottom = new FormAttachment(100);
-		tmLayoutData.top = new FormAttachment(breadcrumb);
-		tmLayoutData.left = new FormAttachment(0);
-		tmLayoutData.right = new FormAttachment(100, 0);
-		treeMap.setLayoutData(tmLayoutData);
-
 		containerLayout.topControl = messageContainer;
 		setControl(container);
+
+		displayMessage(DEFAULT_MESSAGE);
 	}
 
 	@Override
@@ -197,11 +193,31 @@ public class TreeMapViewTab extends CTabItem {
 	}
 
 	public void setModel(TreeMapNode root) {
+		if (treeMap != null && !treeMap.isDisposed()) {
+			treeMap.dispose();
+		}
+
+		treeMap = new TreeMapComposite(treeMapContainer, SWT.BORDER);
+		FormData tmLayoutData = new FormData();
+		tmLayoutData.bottom = new FormAttachment(100);
+		tmLayoutData.top = new FormAttachment(breadcrumb);
+		tmLayoutData.left = new FormAttachment(0);
+		tmLayoutData.right = new FormAttachment(100, 0);
+		treeMap.setLayoutData(tmLayoutData);
+
 		treeMap.setTree(root);
 		breadcrumb.setTreeMap(treeMap);
 
 		containerLayout.topControl = treeMapContainer;
 		container.layout(true, true);
+	}
+
+	public void clearModel() {
+		if (treeMap != null && !treeMap.isDisposed()) {
+			treeMap.dispose();
+		}
+
+		displayMessage(DEFAULT_MESSAGE);
 	}
 
 	private void handleException(Throwable e) {
@@ -210,7 +226,7 @@ public class TreeMapViewTab extends CTabItem {
 		}
 
 		FlightRecorderUI.getDefault().getLogger().log(Level.SEVERE, "Unable to load heap dump", e); //$NON-NLS-1$
-		displayMessage("Unable to load heap dump:" + "\n\t" + e.getLocalizedMessage()); // TODO: i18n
+		displayMessage("Unable to load tree map: " + e.getLocalizedMessage()); // TODO: i18n
 		return;
 	}
 
