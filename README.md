@@ -1,4 +1,4 @@
-[DEPREACATED] This feature is now integrated into [openjdk/jmc](https://github.com/openjdk/jmc) and enabled by default.
+[DEPREACATED] This feature is now integrated into [openjdk/jmc](https://github.com/openjdk/jmc) via [PR#77](https://github.com/openjdk/jmc/pull/77) and is enabled by default.
 
 Download a JDK Mission Control 8.0.0 preview release with the treemap view enabled from [AdoptOpenJDK](https://adoptopenjdk.net/jmc.html).
 
