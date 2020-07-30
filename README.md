@@ -1,3 +1,9 @@
+[DEPREACATED] This feature is now integrated into [openjdk/jmc](https://github.com/openjdk/jmc) and enabled by default.
+
+Download a JDK Mission Control 8.0.0 preview release with the treemap view enabled from [AdoptOpenJDK](https://adoptopenjdk.net/jmc.html).
+
+---
+
 # JDK Mission Control Treemap View
 
 This is a Mission Control plug-in to display HEAP usage as a treemap.
